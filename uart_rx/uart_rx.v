@@ -47,6 +47,7 @@ module uart_rx (
     div_counter div_cnt (
         .clk           (clk),
         .rst_n         (rst_n),
+        .rx_en         (rx_en),
         .en_cnt        (en_cnt),
         .cnt_mode      (cnt_mode),
         .baud_div      (baud_div),
@@ -65,6 +66,7 @@ module uart_rx (
     baud_counter baud_cnt (
         .clk            (clk),
         .rst_n          (rst_n),
+        .rx_en          (rx_en),
         .max_baud       (max_baud),
         .cnt_tick       (cnt_tick),
         .baud_tick      (baud_tick)

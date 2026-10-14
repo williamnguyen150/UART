@@ -1,6 +1,7 @@
 module div_counter (
     input  wire        clk,
     input  wire        rst_n,
+    input  wire        rx_en,
     input  wire        en_cnt,
     input  wire        cnt_mode,   // 0: count to half baud_div, 1: count to baud_div
     input  wire [13:0] baud_div,   // max_cnt
@@ -11,7 +12,7 @@ module div_counter (
     wire [13:0] max_cnt = cnt_mode ? baud_div : (baud_div >> 1);
 
     always @(posedge clk) begin
-        if (!rst_n) cnt <= 14'd0;
+        if (!rst_n | !rx_en) cnt <= 14'd0;
         else if (!en_cnt) cnt <= 14'd0;
         else begin
             if (cnt_mode) cnt <= cnt_tick ? 1'b0 : cnt + 1;

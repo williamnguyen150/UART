@@ -57,9 +57,9 @@ module uart_rx_controller (
                 cnt_mode  = 1'b0;
                 baud_mode = 1'b0;
                 frame_error = 1'b0;
-                if (half_cnt_tick && (!stable_rx)) begin
+                if (rx_en && half_cnt_tick && (!stable_rx)) begin
                     next_state = S2_RECEIVE;
-                end else if (half_cnt_tick && stable_rx) begin
+                end else if (rx_en && half_cnt_tick && stable_rx) begin
                     next_state = S0_IDLE; // Nhiễu ở bit start, quay về idle
                 end
             end
@@ -70,17 +70,17 @@ module uart_rx_controller (
                 cnt_mode  = 1'b1;
                 baud_mode = 1'b0;
                 en_shift  = cnt_tick;
-                if (cnt_tick && baud_tick) next_state = S3_STOP;
+                if (rx_en && cnt_tick && baud_tick) next_state = S3_STOP;
                 frame_error = 1'b0;
             end
 
             S3_STOP: begin
                 rx_done   = 1'b0;
-                en_shift  = parity_en & cnt_tick & baud_tick;
+                en_shift  = (~parity_en) & cnt_tick & baud_tick;
                 en_cnt    = 1'b1;
                 cnt_mode  = 1'b1;
                 baud_mode = 1'b1;
-                if (cnt_tick && baud_tick) next_state = S4_END;
+                if (rx_en && cnt_tick && baud_tick) next_state = S4_END;
                 frame_error = cnt_tick ? (frame_error | ~stable_rx) : frame_error;
             end
 
@@ -90,7 +90,7 @@ module uart_rx_controller (
                 en_shift     = 1'b0;
                 rx_done      = half_cnt_tick;
                 parity_error = parity_en & invalid;
-                if (half_cnt_tick) next_state = S0_IDLE;
+                if (rx_en && half_cnt_tick) next_state = S0_IDLE;
             end
         endcase
     end

@@ -9,14 +9,14 @@ module parity_check (
 
     always @(*) begin
         case (data_len)
-            4'd5:    calc_parity = ^data_in[4:0];
-            4'd6:    calc_parity = ^data_in[5:0];
-            4'd7:    calc_parity = ^data_in[6:0];
+            4'd5:    calc_parity = ^data_in[7:3];
+            4'd6:    calc_parity = ^data_in[7:2];
+            4'd7:    calc_parity = ^data_in[7:1];
             default: calc_parity = ^data_in[7:0];
         endcase
         if (parity_type) calc_parity = ~calc_parity;
 
         // Bit parity được đặt ở vị trí ngay sau dữ liệu
-        invalid = (calc_parity != data_in[data_len]);
+        invalid = (calc_parity != data_in[8]);
     end
 endmodule

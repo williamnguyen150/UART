@@ -21,14 +21,14 @@ module uart_rx (
     wire        en_cnt;
     wire        cnt_mode;
     wire        baud_mode;
-    wire        max_baud;
+    wire [3:0]  max_baud = baud_mode ? num_stop_bit : (num_data_bit + parity_en + 4'd4);
     wire        cnt_tick;
     wire        half_cnt_tick;
     wire        baud_tick;
     wire [8:0]  shift_out;
     wire        invalid;
 
-    assign rx_data = shift_out [7:0];
+    assign rx_data = shift_out[7:0];
 
     // ==========================================
     // 1. Khối Đồng bộ & Phát hiện cạnh xuống (Sync & Edge Detect)
@@ -52,21 +52,13 @@ module uart_rx (
         .cnt_mode      (cnt_mode),
         .baud_div      (baud_div),
         .cnt_tick      (cnt_tick),
-        .half_cnt_tick (half_cnt_tick),
-    );
-
-    find_max_baud find (
-        .num_stop_bit   (num_stop_bit),
-        .parity_en      (parity_en),
-        .baud_mode      (baud_mode),
-        .num_data_bit   (num_data_bit),
-        .max_baud       (max_baud)
+        .half_cnt_tick (half_cnt_tick)
     );
 
     baud_counter baud_cnt (
         .clk            (clk),
-        .rst_n          (rst_n),
-        .rx_en          (rx_en),
+        .rst_n          (rst_n & rx_en),
+		  .rx_en          (rx_en),
         .max_baud       (max_baud),
         .cnt_tick       (cnt_tick),
         .baud_tick      (baud_tick)
@@ -105,6 +97,7 @@ module uart_rx (
         .stable_rx     (stable_rx),
         .cnt_tick      (cnt_tick),
         .half_cnt_tick (half_cnt_tick),
+		  .baud_tick     (baud_tick),
         .en_shift      (en_shift),
         .en_cnt        (en_cnt),
         .cnt_mode      (cnt_mode),

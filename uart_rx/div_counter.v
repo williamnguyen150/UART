@@ -20,6 +20,6 @@ module div_counter (
         end
     end
 
-    assign cnt_tick = cnt_mode ? (cnt == max_cnt) : 1'b0;
-    assign half_cnt_tick = cnt_mode ? 1'b0 : (cnt == max_cnt);
+    assign cnt_tick = cnt_mode ? (cnt == max_cnt - 1) : 1'b0;
+    assign half_cnt_tick = cnt_mode ? 1'b0 : (cnt == max_cnt - 1);
 endmodule

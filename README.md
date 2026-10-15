@@ -1,4 +1,4 @@
-# UART + APB Reference Implementation (Verilog)
+# UART + APB Implementation in Verilog
 
 This repository contains a Verilog implementation that recreates the AMBA APB (Advanced Peripheral Bus) protocol and a UART (Universal Asynchronous Receiver/Transmitter) subsystem, plus example glue logic (APB↔UART bridge), testbenches and simulation.
 

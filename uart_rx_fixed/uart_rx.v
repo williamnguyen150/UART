@@ -28,7 +28,7 @@ module uart_rx (
     wire [8:0]  shift_out;
     wire        invalid;
 
-    assign rx_data = shift_out [7:0];
+    assign rx_data = {shift_out[0], shift_out[1], shift_out[2], shift_out[3], shift_out[4], shift_out[5], shift_out[6], shift_out[7]};
 
     // ==========================================
     // 1. Khối Đồng bộ & Phát hiện cạnh xuống (Sync & Edge Detect)

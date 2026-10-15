@@ -26,85 +26,90 @@ module uart_rx_controller (
 
     reg [2:0] state, next_state;
 
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) 
-            state <= S0_IDLE;
-        else 
-            state <= next_state;
-    end
-
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) 
-            frame_error <= 1'b0;
-        else begin
-            case (state)
-                S0_IDLE:    frame_error <= 1'b0;
-                S1_START:   frame_error <= 1'b0;
-                S2_RECEIVE: frame_error <= 1'b0;
-                S3_STOP:    frame_error <= cnt_tick ? (frame_error | ~stable_rx) : frame_error;
-            endcase
+    // Sequential block for state transitions and error flag registers
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            state        <= S0_IDLE;
+            frame_error  <= 1'b0;
+            parity_error <= 1'b0;
+        end else begin
+            state        <= next_state;
+            
+            // Clear error flags upon returning to idle
+            if (state == S0_IDLE) begin
+                frame_error  <= 1'b0;
+                parity_error <= 1'b0;
+            end 
+            // Latch frame error when sampling the stop bit
+            else if (state == S3_STOP && cnt_tick && baud_tick) begin
+                frame_error  <= ~stable_rx;
+            end
+            // Latch parity error at the end of the frame
+            else if (state == S4_END && half_cnt_tick) begin
+                parity_error <= parity_en & invalid;
+            end
         end
     end
 
+    // Combinational block for next-state logic and control signals only
     always @(*) begin
-        next_state   = state;
-        en_shift     = 1'b0;
-        en_cnt       = 1'b0;
-        cnt_mode     = 1'b0;
-        baud_mode    = 1'b0;
-        rx_done      = 1'b0;
-        parity_error = 1'b0;
+        next_state = state;
+        en_shift   = 1'b0;
+        en_cnt     = 1'b0;
+        cnt_mode   = 1'b0;
+        baud_mode  = 1'b0;
+        rx_done    = 1'b0;
         
         case (state)
             S0_IDLE: begin
-                rx_done   = 1'b0;
-                parity_error = 1'b0;
-                en_cnt    = 1'b0;
-                en_shift  = 1'b0;
-                if (rx_en & fall_edge_rx) 
+                en_cnt   = 1'b0;
+                en_shift = 1'b0;
+                if (rx_en && fall_edge_rx) begin
                     next_state = S1_START;
+                end
             end
 
             S1_START: begin
-                rx_done   = 1'b0;
-                en_shift  = 1'b0;
                 en_cnt    = 1'b1;
                 cnt_mode  = 1'b0;
-                if (rx_en & half_cnt_tick & (!stable_rx)) begin
-                    next_state = S2_RECEIVE;
-                end else if (rx_en && half_cnt_tick && stable_rx) begin
-                    next_state = S0_IDLE; // Nhiễu ở bit start, quay về idle
+                baud_mode = 1'b0;
+                if (rx_en && half_cnt_tick) begin
+                    if (!stable_rx) begin
+                        next_state = S2_RECEIVE;
+                    end else begin
+                        next_state = S0_IDLE; // Filter out noise on start bit
+                    end
                 end
             end
 
             S2_RECEIVE: begin
-                rx_done   = 1'b0;
                 en_cnt    = 1'b1;
                 cnt_mode  = 1'b1;
                 baud_mode = 1'b0;
                 en_shift  = cnt_tick;
-                if (rx_en && cnt_tick && baud_tick) 
+                if (rx_en && cnt_tick && baud_tick) begin
                     next_state = S3_STOP;
+                end
             end
 
             S3_STOP: begin
-                rx_done   = 1'b0;
                 en_shift  = (~parity_en) & cnt_tick & baud_tick;
                 en_cnt    = 1'b1;
                 cnt_mode  = 1'b1;
                 baud_mode = 1'b1;
-                if (rx_en && cnt_tick && baud_tick) 
+                if (rx_en && cnt_tick && baud_tick) begin
                     next_state = S4_END;
+                end
             end
 
             S4_END: begin
-                en_cnt       = 1'b1;
-                cnt_mode     = 1'b0;
-                en_shift     = 1'b0;
-                rx_done      = half_cnt_tick;
-                parity_error = parity_en & invalid;
-                if (rx_en && half_cnt_tick) 
+                en_cnt   = 1'b1;
+                cnt_mode = 1'b0;
+                en_shift = 1'b0;
+                rx_done  = half_cnt_tick;
+                if (rx_en && half_cnt_tick) begin
                     next_state = S0_IDLE;
+                end
             end
         endcase
     end

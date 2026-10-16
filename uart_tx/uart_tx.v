@@ -60,6 +60,7 @@ module uart_tx (
         .rst_n(rst_n),
         .tx_data(tx_data),
         .parity_type(parity_type),
+		  .num_data_bit(num_data_bit),
         .load_mode(load_mode),
         .en_reg(en_reg),
         .out_mode(out_mode),

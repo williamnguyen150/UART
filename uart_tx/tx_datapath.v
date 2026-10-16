@@ -3,6 +3,7 @@ module tx_datapath (
     input  wire rst_n,
     input  wire [7:0] tx_data,
     input  wire parity_type,
+	 input  wire [1:0] num_data_bit,
     input  wire load_mode,
     input  wire en_reg,
     input  wire [1:0] out_mode,
@@ -12,7 +13,8 @@ module tx_datapath (
     reg parity_reg;
     wire parity_calc;
     
-    assign parity_calc = parity_type ? ~(^tx_data) : (^tx_data);
+	 wire [7:0] data_masked = tx_data & (8'hFF >> (3 - num_data_bit));
+   assign parity_calc = parity_type ? ~(^data_masked) : (^data_masked);
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

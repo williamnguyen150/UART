@@ -132,7 +132,7 @@ module apb_regs (
     wire rx_read_en = access & (addr == A_RXDATA) & ~write;
     wire rx_write_en = RX_EN & rx_done;
 
-    fifo #(.BIT_WIDTH(8), .TAP(4)) tx_fifo(
+    tx_fifo #(.BIT_WIDTH(8), .TAP(4)) txfifo(
         .clk(clk), 
         .rst_n(rst_n), 
         .read_en(tx_read_en), 
@@ -142,7 +142,7 @@ module apb_regs (
         .empty(TX_EMPTY), 
         .full(TX_FULL)
     );
-    fifo #(.BIT_WIDTH(10), .TAP(4)) rx_fifo(
+    rx_fifo #(.BIT_WIDTH(10), .TAP(4)) rxfifo(
         .clk(clk), 
         .rst_n(rst_n), 
         .read_en(rx_read_en), 
@@ -178,7 +178,7 @@ module apb_regs (
             A_STATUS: begin
                 read_en = 1;
                 write_en = 0;
-                r_data = {27'd0, TX_BUSY, TX_FULL, TX_EMPTY, RX_FULL, TX_EMPTY};
+                r_data = {27'd0, TX_BUSY, TX_FULL, TX_EMPTY, RX_FULL, RX_EMPTY};
             end
             A_IRQEN: begin
                 read_en = 1;

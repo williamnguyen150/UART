@@ -13,6 +13,7 @@ This repository contains a Verilog implementation that recreates the AMBA APB (A
 
 - /UART/         — Verilog sources (APB, UART, bridge, utils)
 - /tb/          — Testbenches and top-level simulation harnesses
+- /uart_tx/,/uart_rx/    _ Standalone v block
 
 ## APB overview (short)
 

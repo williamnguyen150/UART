@@ -1,0 +1,32 @@
+# Load Sky130 High-Density typical corner Liberty library
+read_liberty -lib /home/icy/OpenSTA/test/sky130hd/sky130_fd_sc_hd__tt_025C_1v80.lib
+
+# Read all synthesizable RTL source files (excluding tb_uart_apb_top.v)
+read_verilog /home/icy/Downloads/UART_2/apb_regs.v
+read_verilog /home/icy/Downloads/UART_2/apb_slave.v
+read_verilog /home/icy/Downloads/UART_2/baud_counter.v
+read_verilog /home/icy/Downloads/UART_2/counter.v
+read_verilog /home/icy/Downloads/UART_2/div_counter.v
+read_verilog /home/icy/Downloads/UART_2/parity_check.v
+read_verilog /home/icy/Downloads/UART_2/rx_fifo.v
+read_verilog /home/icy/Downloads/UART_2/sipo_reg.v
+read_verilog /home/icy/Downloads/UART_2/sync_edge_det.v
+read_verilog /home/icy/Downloads/UART_2/tx_datapath.v
+read_verilog /home/icy/Downloads/UART_2/tx_fifo.v
+read_verilog /home/icy/Downloads/UART_2/tx_fsm.v
+read_verilog /home/icy/Downloads/UART_2/uart_rx.v
+read_verilog /home/icy/Downloads/UART_2/uart_rx_controller.v
+read_verilog /home/icy/Downloads/UART_2/uart_tx.v
+read_verilog /home/icy/Downloads/UART_2/uart_apb_top.v
+
+# Elaborate hierarchy and run generic synthesis targeting uart_apb_top
+hierarchy -check -top uart_apb_top
+synth -top uart_apb_top
+
+# Map flip-flops and combinational logic to Sky130 standard cells
+dfflibmap -liberty /home/icy/OpenSTA/test/sky130hd/sky130_fd_sc_hd__tt_025C_1v80.lib
+abc -liberty /home/icy/OpenSTA/test/sky130hd/sky130_fd_sc_hd__tt_025C_1v80.lib
+
+# Clean up unused wires/cells and write gate-level netlist for OpenSTA
+opt_clean -purge
+write_verilog -noattr /home/icy/Downloads/UART_2/uart_apb_top_netlist.v

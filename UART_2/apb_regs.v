@@ -39,7 +39,7 @@ module apb_regs (
                 A_CONFIG = 6'd2, 
                 A_CTRL   = 6'd3, 
                 A_STATUS = 6'd4, 
-                A_BAUD   = 6'd5;
+                A_BAUD   = 6'd5,
                 A_IER    = 6'd6;
     // TXDATA
     reg [7:0] TX_DATA;

@@ -31,7 +31,7 @@ module uart_rx (
     wire        invalid;
 
     assign rx_data = shift_out[7:0];
-    assign rts_n = rx_en;
+    assign rts_n = ~rx_en;
 
     // ==========================================
     // 1. Khối Đồng bộ & Phát hiện cạnh xuống (Sync & Edge Detect)

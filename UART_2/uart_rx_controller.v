@@ -102,8 +102,8 @@ module uart_rx_controller (
                 en_cnt       = 1'b0;
                 cnt_mode     = 1'b0;
                 en_shift     = 1'b0;
-                rx_busy      = ~half_cnt_tick;
-                //rx_busy      = 1'b0;
+                //rx_busy      = ~half_cnt_tick;
+                rx_busy      = 1'b0;
                 parity_error = parity_en & invalid;
                 //if (rx_en && half_cnt_tick) 
                 next_state = S0_IDLE;

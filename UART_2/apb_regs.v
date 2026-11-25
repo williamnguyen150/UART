@@ -216,7 +216,7 @@ module apb_regs (
             end
             A_BAUD: begin
                 read_en = 1;
-                write_en = ~(strb[0] | strb[1]) | (TX_DONE & ~RX_BUSY & &w_data[15:0]);
+                write_en = ~(strb[0] | strb[1]) | (TX_DONE & ~RX_BUSY & |w_data[15:0]);
                 r_data = {16'd0, BAUDDIV};
             end
             A_IER: begin

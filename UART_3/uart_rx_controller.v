@@ -13,6 +13,7 @@ module uart_rx_controller (
     output reg        cnt_mode,
     output reg        baud_mode,
     output reg        rx_busy,
+    output reg        rx_done,
     output reg        frame_error,
     output reg        parity_error,
     input  wire       invalid
@@ -28,6 +29,8 @@ module uart_rx_controller (
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) 
+            state <= S0_IDLE;
+        else if (~rx_en) 
             state <= S0_IDLE;
         else 
             state <= next_state;
@@ -53,11 +56,13 @@ module uart_rx_controller (
         cnt_mode     = 1'b0;
         baud_mode    = 1'b0;
         rx_busy      = 1'b0;
+        rx_done      = 1'b0;
         parity_error = 1'b0;
         
         case (state)
             S0_IDLE: begin
                 rx_busy   = 1'b0;
+                rx_done   = 1'b0;
                 parity_error = 1'b0;
                 en_cnt    = 1'b0;
                 en_shift  = 1'b0;
@@ -70,9 +75,11 @@ module uart_rx_controller (
                 en_shift  = 1'b0;
                 en_cnt    = 1'b1;
                 cnt_mode  = 1'b0;
-                if (!rx_en)                          next_state = S0_IDLE;
-                else if (half_cnt_tick & !stable_rx) next_state = S2_RECEIVE;
-                else if (half_cnt_tick & stable_rx)  next_state = S0_IDLE;
+                if (rx_en & half_cnt_tick & (!stable_rx)) begin
+                    next_state = S2_RECEIVE;
+                end else if (rx_en && half_cnt_tick && stable_rx) begin
+                    next_state = S0_IDLE; // Nhiễu ở bit start, quay về idle
+                end
             end
 
             S2_RECEIVE: begin
@@ -81,8 +88,8 @@ module uart_rx_controller (
                 cnt_mode  = 1'b1;
                 baud_mode = 1'b0;
                 en_shift  = cnt_tick;
-                if (!rx_en)                          next_state = S0_IDLE;
-                else if (cnt_tick && baud_tick)      next_state = S3_STOP;
+                if (rx_en && cnt_tick && baud_tick) 
+                    next_state = S3_STOP;
             end
 
             S3_STOP: begin
@@ -91,22 +98,19 @@ module uart_rx_controller (
                 en_cnt    = 1'b1;
                 cnt_mode  = 1'b1;
                 baud_mode = 1'b1;
-                if (!rx_en)                          next_state = S0_IDLE;
-                else if (cnt_tick && baud_tick)      next_state = S4_END;
+                if (rx_en && cnt_tick && baud_tick) 
+                    next_state = S4_END;
             end
 
             S4_END: begin
-                //en_cnt       = 1'b1;
                 en_cnt       = 1'b0;
                 cnt_mode     = 1'b0;
                 en_shift     = 1'b0;
-                //rx_busy      = ~half_cnt_tick;
                 rx_busy      = 1'b0;
+                rx_done      = 1'b1;
                 parity_error = parity_en & invalid;
-                //if (rx_en && half_cnt_tick) 
-                next_state = S0_IDLE;
+                next_state = S0_IDLE;   // state 1 chu kỳ, về IDLE luôn
             end
-            default: next_state = S0_IDLE;
         endcase
     end
 endmodule

@@ -2,8 +2,8 @@ module uart_rx (
     input  wire        clk,
     input  wire        rst_n,
     input  wire        soft_rst, 
+    input  wire        rx_full,       // Chưa đọc rx_data ra
     input  wire        rx_en,         // Cho phép thu
-    input  wire        rx_done_flag,  // ---> [THÊM]: Cờ từ apb_regs để lái rts_n
     input  wire        parity_en,     // Cho phép kiểm tra parity
     input  wire        parity_type,   // 0: Even, 1: Odd
     input  wire [1:0]  num_data_bit,  // Cấu hình số bit dữ liệu
@@ -11,7 +11,8 @@ module uart_rx (
     input  wire [15:0] baud_div,      // Hệ số chia baud rate
     input  wire        rx,            // Chân nhận tín hiệu nối tiếp vật lý
     output reg  [7:0]  rx_data,       // Dữ liệu nhận song song (8-bit)
-    output wire        rx_busy,       // Cờ báo hoàn tất nhận 1 khung
+    output wire        rx_busy,       // Cờ báo mạch uart_rx đang bận
+    output reg         rx_done,       // Cờ báo nhận xong khung
     output wire        frame_error,   // Cờ báo lỗi khung (Frame Error)
     output wire        parity_error,  // Cờ báo lỗi Parity
     output wire        rts_n
@@ -31,18 +32,26 @@ module uart_rx (
     wire [8:0]  shift_out;
     wire        invalid;
 
-    // ---> [SỬA]: Kéo rts_n lên 1 (không cho phép nhận) khi RX_DIS=1 hoặc CPU chưa lấy Data cũ
-    assign rts_n = ~rx_en | rx_done_flag;
-
-    // ---> [SỬA]: Dịch và đệm 0 các bit cao khi khung < 8 bit
     always @(*) begin
         case (num_data_bit)
-            2'b00:   rx_data = {3'b000, shift_out[7:3]};
-            2'b01:   rx_data = {2'b00,  shift_out[7:2]};
-            2'b10:   rx_data = {1'b0,   shift_out[7:1]};
-            default: rx_data = shift_out[7:0];
+            2'b00:   rx_data = {3'b000, shift_out[7:3]}; // 5-bit
+            2'b01:   rx_data = {2'b00,  shift_out[7:2]}; // 6-bit
+            2'b10:   rx_data = {1'b0,   shift_out[7:1]}; // 7-bit
+            default: rx_data = shift_out[7:0];           // 8-bit
         endcase
     end
+
+    reg rst_hold;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            rst_hold <= 1'b1;
+        else if (soft_rst)
+            rst_hold <= 1'b1;
+        else
+            rst_hold <= 1'b0;
+    end
+
+    assign rts_n = rst_hold | ~rx_en | rx_full;
 
     // ==========================================
     // 1. Khối Đồng bộ & Phát hiện cạnh xuống (Sync & Edge Detect)
@@ -117,6 +126,7 @@ module uart_rx (
         .cnt_mode      (cnt_mode),
         .baud_mode     (baud_mode),
         .rx_busy       (rx_busy),
+        .rx_done       (rx_done),
         .frame_error   (frame_error),
         .parity_error  (parity_error),
         .invalid       (invalid)

@@ -9,7 +9,7 @@ module div_counter (
     output wire        half_cnt_tick
 );
     reg [15:0] cnt;
-    wire [15:0] max_cnt = cnt_mode ? baud_div : (baud_div >> 1);
+    wire [15:0] max_cnt = cnt_mode ? (baud_div - 1) : ((baud_div >> 1) - 1);
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) 

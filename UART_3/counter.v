@@ -8,7 +8,7 @@ module counter (
 );
     reg [15:0] count_val;
 
-    assign cnt_tick = (count_val == max_cnt);
+    assign cnt_tick = (count_val == (max_cnt - 1));
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n)

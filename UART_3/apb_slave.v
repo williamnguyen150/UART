@@ -6,7 +6,7 @@ module apb_slave (
     input             pselect, 
     input             penable, 
     input             pwrite, 
-    input      [11:0]  paddr, 
+    input      [11:0] paddr, 
     input      [3:0]  pstrb, 
     input      [31:0] pwdata, 
 
@@ -42,32 +42,30 @@ module apb_slave (
     end
 
     always @(*) begin
-        access  = 1'd0;
-        write   = 1'd0;
-        addr    = 12'd0;
-        strb    = 4'd0;
-        w_data  = 32'd0;
-        prdata  = 32'd0;
+        access = 1'd0;
+        write = 1'd0;
+        addr = 12'd0;
+        strb = 4'd0;
+        w_data = 32'd0;
+        prdata = 32'd0;
         pslverr = 1'd0;
-        pready  = 1'd1;
-
+        pready = 1'd0;
         case (state)
             IDLE: begin
-                pready = 1'd1; // APB luôn sẵn sàng
+                write = 1'd0;
+                prdata = 32'd0;
+                pslverr = 1'd0;
+                pready = 1'd1;
             end
             SETUP: begin
-                // ---> [SỬA]: access chỉ bằng 1 ở pha Access (pselect & penable) để apb_regs không bị ghi nhầm ở pha Setup
                 access = pselect & penable;
-                write  = pwrite;
-                addr   = paddr;
-                strb   = pstrb;
+                write = pwrite;
+                addr = paddr;
+                strb = pstrb;
                 w_data = pwdata;
-
-                // ---> [SỬA]: Chỉ xuất prdata khi ở pha Access và là lệnh đọc. Tránh đẩy rác ra bus.
                 prdata = (pselect & penable & ~pwrite) ? r_data : 32'd0;
-                
-                // ---> [SỬA]: Lỗi pslverr chỉ kích hoạt đúng pha Access
-                pslverr = pselect & penable & (pwrite ? ~write_en : ~read_en);
+                pready = 1'd1;
+                pslverr = pselect & penable & (|paddr[11:8] | |paddr[1:0] | (pwrite ? ~write_en : ~read_en));
             end
         endcase
     end

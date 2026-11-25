@@ -21,6 +21,13 @@ module tx_fsm (
 
     reg [1:0] state, next_state;
 
+    // lưu trạng thái start mà tx_start đã bật trong 1 chu kỳ để chờ đến khi có cts_n về 0
+    reg tx_req;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n || soft_rst || state != S0_IDLE) tx_req <= 1'b0;
+        else if (tx_start) tx_req <= 1'b1;
+    end
+
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n)
             state <= S0_IDLE;
@@ -46,7 +53,7 @@ module tx_fsm (
                 en_reg    = 1'b0;
                 en_cnt    = 1'b0;
                 out_mode  = 2'b11;
-                if (tx_start == 1'b1 & cts_n == 1'b0)
+                if ((tx_start || tx_req) && ~cts_n)
                     next_state = S1_START;
             end
             

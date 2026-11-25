@@ -21,7 +21,7 @@ module apb_uart (
     wire [3:0]  strb;
     wire [31:0] w_data, r_data;
     wire [7:0]  rx_data, tx_data;
-    wire        parity_error, frame_error, tx_done, rx_busy, rx_done_stat;
+    wire        parity_error, frame_error, tx_done, rx_busy, rx_done, rx_full;
     wire        tx_start, rx_en, soft_rst, num_stop_bit, parity_en, parity_type;
     wire [15:0] bauddiv;
     wire [1:0]  num_data_bit;
@@ -39,8 +39,8 @@ module apb_uart (
         .addr(addr), .strb(strb), .w_data(w_data), .r_data(r_data),
         .write_en(write_en), .read_en(read_en), .interrupt(interrupt),
         .rx_data(rx_data), .parity_error(parity_error), .frame_error(frame_error),
-        .tx_done(tx_done), .rx_busy(rx_busy), .tx_start(tx_start), .rx_en(rx_en),
-        .rx_done_out(rx_done_stat), .soft_rst(soft_rst), .bauddiv(bauddiv),
+        .tx_done(tx_done), .rx_busy(rx_busy), .rx_done(rx_done), .tx_start(tx_start), .rx_en(rx_en),
+        .rx_full(rx_full), .soft_rst(soft_rst), .bauddiv(bauddiv),
         .num_data_bit(num_data_bit), .num_stop_bit(num_stop_bit), .parity_en(parity_en),
         .parity_type(parity_type), .tx_data(tx_data)
     );
@@ -54,9 +54,9 @@ module apb_uart (
 
     uart_rx u_uart_rx (
         .clk(pclk), .rst_n(presetn), .soft_rst(soft_rst), .rx_en(rx_en),
-        .rx_done_flag(rx_done_stat), .parity_en(parity_en), .parity_type(parity_type),
+        .rx_full(rx_full), .parity_en(parity_en), .parity_type(parity_type),
         .num_data_bit(num_data_bit), .num_stop_bit(num_stop_bit), .baud_div(bauddiv),
-        .rx(rx), .rx_data(rx_data), .rx_busy(rx_busy), .frame_error(frame_error),
-        .parity_error(parity_error), .rts_n(rts_n)
+        .rx(rx), .rx_data(rx_data), .rx_busy(rx_busy), .rx_done(rx_done),
+        .frame_error(frame_error), .parity_error(parity_error), .rts_n(rts_n)
     );
 endmodule

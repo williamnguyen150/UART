@@ -1,0 +1,135 @@
+module uart_rx (
+    input  wire        clk,
+    input  wire        rst_n,
+    input  wire        soft_rst, 
+    input  wire        rx_full,       // Chưa đọc rx_data ra
+    input  wire        rx_en,         // Cho phép thu
+    input  wire        parity_en,     // Cho phép kiểm tra parity
+    input  wire        parity_type,   // 0: Even, 1: Odd
+    input  wire [1:0]  num_data_bit,  // Cấu hình số bit dữ liệu
+    input  wire        num_stop_bit,  // Cấu hình số bit stop
+    input  wire [15:0] baud_div,      // Hệ số chia baud rate
+    input  wire        rx,            // Chân nhận tín hiệu nối tiếp vật lý
+    output reg  [7:0]  rx_data,       // Dữ liệu nhận song song (8-bit)
+    output wire        rx_busy,       // Cờ báo mạch uart_rx đang bận
+    output reg         rx_done,       // Cờ báo nhận xong khung
+    output wire        frame_error,   // Cờ báo lỗi khung (Frame Error)
+    output wire        parity_error,  // Cờ báo lỗi Parity
+    output wire        rts_n
+);
+
+    // Khai báo các đường dây nội bộ (internal wires) để liên kết giữa các khối con
+    wire        stable_rx;
+    wire        fall_edge_rx;
+    wire        en_shift;
+    wire        en_cnt;
+    wire        cnt_mode;
+    wire        baud_mode;
+    wire [3:0]  max_baud = baud_mode ? num_stop_bit : (num_data_bit + parity_en + 3'd4);
+    wire        cnt_tick;
+    wire        half_cnt_tick;
+    wire        baud_tick;
+    wire [8:0]  shift_out;
+    wire        invalid;
+
+    always @(*) begin
+        case (num_data_bit)
+            2'b00:   rx_data = {3'b000, shift_out[7:3]}; // 5-bit
+            2'b01:   rx_data = {2'b00,  shift_out[7:2]}; // 6-bit
+            2'b10:   rx_data = {1'b0,   shift_out[7:1]}; // 7-bit
+            default: rx_data = shift_out[7:0];           // 8-bit
+        endcase
+    end
+
+    reg rst_hold;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            rst_hold <= 1'b1;
+        else if (soft_rst)
+            rst_hold <= 1'b1;
+        else
+            rst_hold <= 1'b0;
+    end
+
+    assign rts_n = rst_hold | ~rx_en | rx_full;
+
+    // ==========================================
+    // 1. Khối Đồng bộ & Phát hiện cạnh xuống (Sync & Edge Detect)
+    // ==========================================
+    sync_edge_det u_sync_edge (
+        .clk           (clk),
+        .rst_n         (rst_n),
+        .rx            (rx),
+        .stable_rx     (stable_rx),
+        .fall_edge_rx  (fall_edge_rx)
+    );
+
+    // ==========================================
+    // 2. Khối Tạo nhịp Baud & Bộ đếm chia tần (Baud & Divider Counter)
+    // ==========================================
+    div_counter div_cnt (
+        .clk           (clk),
+        .rst_n         (rst_n),
+        .rx_en         (rx_en & ~soft_rst),
+        .en_cnt        (en_cnt),
+        .cnt_mode      (cnt_mode),
+        .baud_div      (baud_div),
+        .cnt_tick      (cnt_tick),
+        .half_cnt_tick (half_cnt_tick)
+    );
+
+    baud_counter baud_cnt (
+        .clk            (clk),
+        .rst_n          (rst_n),
+        .soft_rst       (soft_rst | ~rx_en), 
+        .max_baud       (max_baud),
+        .cnt_tick       (cnt_tick),
+        .baud_tick      (baud_tick)
+    );
+
+    // ==========================================
+    // 3. Khối Thanh ghi dịch SIPO (Serial in Parallel out)
+    // ==========================================
+    sipo_reg u_sipo (
+        .clk           (clk),
+        .rst_n         (rst_n),
+        .en_shift      (en_shift),
+        .stable_rx     (stable_rx),
+        .rx_data       (shift_out)
+    );
+
+    // ==========================================
+    // 4. Khối Kiểm tra Parity (Parity Check)
+    // ==========================================
+    parity_check u_parity_check (
+        .data_in       (shift_out),
+        .parity_type   (parity_type),
+        .num_data_bit  (num_data_bit),
+        .invalid       (invalid)
+    );
+
+    // ==========================================
+    // 5. Khối Điều khiển trung tâm FSM (Control)
+    // ==========================================
+    uart_rx_controller FSM (
+        .clk           (clk),
+        .rst_n         (rst_n),
+        .rx_en         (rx_en & ~soft_rst),
+        .parity_en     (parity_en),
+        .fall_edge_rx  (fall_edge_rx),
+        .stable_rx     (stable_rx),
+        .cnt_tick      (cnt_tick),
+        .half_cnt_tick (half_cnt_tick),
+        .baud_tick     (baud_tick),
+        .en_shift      (en_shift),
+        .en_cnt        (en_cnt),
+        .cnt_mode      (cnt_mode),
+        .baud_mode     (baud_mode),
+        .rx_busy       (rx_busy),
+        .rx_done       (rx_done),
+        .frame_error   (frame_error),
+        .parity_error  (parity_error),
+        .invalid       (invalid)
+    );
+
+endmodule

@@ -3,7 +3,8 @@ module sync_edge_det (
     input  wire rst_n,
     input  wire rx,
     output reg  stable_rx,
-    output wire fall_edge_rx
+    output wire fall_edge_rx, 
+    output wire rise_edge_rx
 );
     reg rx_ff1, rx_ff2;
 
@@ -21,4 +22,5 @@ module sync_edge_det (
 
     // Phát hiện cạnh xuống (từ 1 xuống 0)
     assign fall_edge_rx = ~rx_ff2 & stable_rx;
+    assign rise_edge_rx = rx_ff2 & ~stable_rx;
 endmodule
